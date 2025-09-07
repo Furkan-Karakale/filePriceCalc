@@ -1,6 +1,3 @@
-import * as THREE from "https://cdn.skypack.dev/three@0.149.0/";
-import { STLLoader } from "https://cdn.skypack.dev/three@0.149.0/three/examples/jsm/loaders/STLLoader";
-
 export class PRICECALCULATOR {
   id;
   FILE;
@@ -312,4 +309,3 @@ function getPrintHeight(object, manufacturing) {
     return lengthOfPart;
   }
 }
-
