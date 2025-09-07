@@ -34,7 +34,6 @@ export class PRICECALCULATOR {
     let pointer = this;
     let loader = new STLLoader();
     let stlMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
     loader.load(
       URL.createObjectURL(pointer.FILE),
       function (geometry) {
