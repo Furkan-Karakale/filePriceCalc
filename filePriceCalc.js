@@ -31,7 +31,7 @@ export class PRICECALCULATOR {
   };
   loadSTLFile = function (FILE) {
     let pointer = this;
-    let loader = new STLLoader();
+    let loader = new this.STLLoader();
     let stlMaterial = new this.THREE.MeshBasicMaterial({ color: 0xffffff });
     loader.load(
       URL.createObjectURL(pointer.FILE),
