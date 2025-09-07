@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
+import { STLLoader } from "STLLoader";
 
 export class PRICECALCULATOR {
   id;
