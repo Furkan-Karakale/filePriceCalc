@@ -1,5 +1,5 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.149.0/build/three.module";
-import { STLLoader } from "https://cdn.skypack.dev/three@0.149.0";
+import { STLLoader } from "https://cdn.jsdelivr.net/npm/stl-loader@1.0.0/STLLoader.min.js";
 
 export class PRICECALCULATOR {
   id;
