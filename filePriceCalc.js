@@ -1,3 +1,6 @@
+import * as THREE from "https://cdn.skypack.dev/three@0.149.0/";
+import { STLLoader } from "https://cdn.skypack.dev/three@0.149.0/three/examples/jsm/loaders/STLLoader";
+
 export class PRICECALCULATOR {
   id;
   FILE;
@@ -9,10 +12,8 @@ export class PRICECALCULATOR {
     },
   });
   loaded = 0;
-  constructor(id, THREE, STLLoader) {
+  constructor(id) {
     this.id = id;
-    this.THREE = THREE;
-    this.STLLoader = STLLoader;
   }
   INIT = function (FILE) {
     this.FILE = FILE;
@@ -31,16 +32,16 @@ export class PRICECALCULATOR {
   };
   loadSTLFile = function (FILE) {
     let pointer = this;
-    let loader = new this.STLLoader();
-    let stlMaterial = new this.THREE.MeshBasicMaterial({ color: 0xffffff });
+    let loader = new STLLoader();
+    let stlMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
     loader.load(
       URL.createObjectURL(pointer.FILE),
       function (geometry) {
-        pointer.mesh = new this.THREE.Mesh(geometry, stlMaterial);
+        pointer.mesh = new THREE.Mesh(geometry, stlMaterial);
         pointer.name = pointer.FILE.name;
-        let box = new this.THREE.Box3().setFromObject(pointer.mesh);
-        pointer.boxSize = new this.THREE.Vector3();
+        let box = new THREE.Box3().setFromObject(pointer.mesh);
+        pointer.boxSize = new THREE.Vector3();
         box.getSize(pointer.boxSize);
 
         let calc = this.calVolume(pointer.mesh, box.min.z);
@@ -204,23 +205,23 @@ export class PRICECALCULATOR {
       if (child instanceof THREE.Mesh) {
         let positions = child.geometry.getAttribute("position").array;
         for (let i = 0; i < positions.length; i += 9) {
-          let t1 = new this.THREE.Vector3(
+          let t1 = new THREE.Vector3(
             positions[i + 0],
             positions[i + 1],
             positions[i + 2]
           );
-          let t2 = new this.THREE.Vector3(
+          let t2 = new THREE.Vector3(
             positions[i + 3],
             positions[i + 4],
             positions[i + 5]
           );
-          let t3 = new this.THREE.Vector3(
+          let t3 = new THREE.Vector3(
             positions[i + 6],
             positions[i + 7],
             positions[i + 8]
           );
-          var triangle = new this.THREE.Triangle(t1, t2, t3);
-          let normal = new this.THREE.Vector3();
+          var triangle = new THREE.Triangle(t1, t2, t3);
+          let normal = new THREE.Vector3();
           triangle.getNormal(normal);
           let angle =
             (Math.acos(
