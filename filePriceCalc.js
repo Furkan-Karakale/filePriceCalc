@@ -1,6 +1,3 @@
-import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
-
 export class PRICECALCULATOR {
   id;
   FILE;
@@ -12,8 +9,10 @@ export class PRICECALCULATOR {
     },
   });
   loaded = 0;
-  constructor(id) {
+  constructor(id, THREE, STLLoader) {
     this.id = id;
+    this.THREE = THREE;
+    this.STLLoader = STLLoader;
   }
   INIT = function (FILE) {
     this.FILE = FILE;
@@ -33,17 +32,17 @@ export class PRICECALCULATOR {
   loadSTLFile = function (FILE) {
     let pointer = this;
     let loader = new STLLoader();
-    let stlMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    let stlMaterial = new this.THREE.MeshBasicMaterial({ color: 0xffffff });
     loader.load(
       URL.createObjectURL(pointer.FILE),
       function (geometry) {
-        pointer.mesh = new THREE.Mesh(geometry, stlMaterial);
+        pointer.mesh = new this.THREE.Mesh(geometry, stlMaterial);
         pointer.name = pointer.FILE.name;
-        let box = new THREE.Box3().setFromObject(pointer.mesh);
-        pointer.boxSize = new THREE.Vector3();
+        let box = new this.THREE.Box3().setFromObject(pointer.mesh);
+        pointer.boxSize = new this.THREE.Vector3();
         box.getSize(pointer.boxSize);
 
-        let calc = calVolume(pointer.mesh, box.min.z);
+        let calc = this.calVolume(pointer.mesh, box.min.z);
         pointer.volume = calc[0];
         pointer.surfaceArea = calc[1];
         pointer.supportVolume = calc[2];
@@ -61,14 +60,14 @@ export class PRICECALCULATOR {
     expensesM,
     selections = { infill: 15, wallCount: 2 }
   ) {
-    if (!isItFit(this, manufacturingM.buildVolume))
+    if (!this.isItFit(this, manufacturingM.buildVolume))
       return {
         status: `400`,
         data: `${manufacturing.type} icin maksimum uretim icin
             ${manufacturing.buildVolume.x} × ${manufacturing.buildVolume.y} × ${manufacturing.buildVolume.z} mm'dir.
                 Lutfen uretim seklini degistirin.`,
       };
-    if (isItFit(this, manufacturingM.minBuildSize)) {
+    if (this.isItFit(this, manufacturingM.minBuildSize)) {
       return {
         status: `400`,
         data: `${manufacturing.type} icin minimum uretim icin
@@ -145,7 +144,7 @@ export class PRICECALCULATOR {
   slaCostCalculation(manufacturing, material, expenses) {
     const TlperMm3 = (material.density / 1000) * (material.price / 1000); // Tl/mm^3
     const TlperHour = manufacturing.powerConsumption * expenses.kWPrice; // Tl/h
-    let lengthOfPart = getPrintHeight(this, manufacturing);
+    let lengthOfPart = this.getPrintHeight(this, manufacturing);
     let supportCost = parseFloat(
       (this.supportVolume * TlperMm3 * 0.15).toFixed(3)
     );
@@ -177,138 +176,141 @@ export class PRICECALCULATOR {
       ).toFixed(2)
     );
   }
-}
 
-function isItFit(object, volume) {
-  let objectVolume = [object.boxSize.x, object.boxSize.y, object.boxSize.z];
-  objectVolume.sort(function (a, b) {
-    return b - a;
-  });
-  let buildVolume = [volume.x, volume.z, volume.z];
-  buildVolume.sort(function (a, b) {
-    return b - a;
-  });
-  if (
-    objectVolume[0] < buildVolume[0] &&
-    objectVolume[1] < buildVolume[1] &&
-    objectVolume[2] < buildVolume[2]
-  )
-    return true;
-  else return false;
-}
+  isItFit(object, volume) {
+    let objectVolume = [object.boxSize.x, object.boxSize.y, object.boxSize.z];
+    objectVolume.sort(function (a, b) {
+      return b - a;
+    });
+    let buildVolume = [volume.x, volume.z, volume.z];
+    buildVolume.sort(function (a, b) {
+      return b - a;
+    });
+    if (
+      objectVolume[0] < buildVolume[0] &&
+      objectVolume[1] < buildVolume[1] &&
+      objectVolume[2] < buildVolume[2]
+    )
+      return true;
+    else return false;
+  }
 
-function calVolume(MESH, minZ) {
-  let vol = 0;
-  let surface = 0;
-  let support = 0;
-  MESH.traverse(function (child) {
-    if (child instanceof THREE.Mesh) {
-      let positions = child.geometry.getAttribute("position").array;
-      for (let i = 0; i < positions.length; i += 9) {
-        let t1 = new THREE.Vector3(
-          positions[i + 0],
-          positions[i + 1],
-          positions[i + 2]
-        );
-        let t2 = new THREE.Vector3(
-          positions[i + 3],
-          positions[i + 4],
-          positions[i + 5]
-        );
-        let t3 = new THREE.Vector3(
-          positions[i + 6],
-          positions[i + 7],
-          positions[i + 8]
-        );
-        var triangle = new THREE.Triangle(t1, t2, t3);
-        let normal = new THREE.Vector3();
-        triangle.getNormal(normal);
-        let angle =
-          (Math.acos(
-            normal.z /
-              Math.sqrt(
-                normal.z * normal.z + normal.y * normal.y + normal.x * normal.x
-              )
-          ) *
-            180) /
-          Math.PI;
-        vol += signedVolumeOfTriangle(t1, t2, t3);
-        surface += areatriangle3d(t1, t2, t3);
-        if ((angle > 0 && angle < 60) || (angle > 120 && angle < 180))
-          support +=
-            areatriangle3d(t1, t2, t3) *
-            ((triangle.a.z + triangle.b.z + triangle.c.z) / 3 - minZ);
+  calVolume(MESH, minZ) {
+    let vol = 0;
+    let surface = 0;
+    let support = 0;
+    MESH.traverse(function (child) {
+      if (child instanceof THREE.Mesh) {
+        let positions = child.geometry.getAttribute("position").array;
+        for (let i = 0; i < positions.length; i += 9) {
+          let t1 = new this.THREE.Vector3(
+            positions[i + 0],
+            positions[i + 1],
+            positions[i + 2]
+          );
+          let t2 = new this.THREE.Vector3(
+            positions[i + 3],
+            positions[i + 4],
+            positions[i + 5]
+          );
+          let t3 = new this.THREE.Vector3(
+            positions[i + 6],
+            positions[i + 7],
+            positions[i + 8]
+          );
+          var triangle = new this.THREE.Triangle(t1, t2, t3);
+          let normal = new this.THREE.Vector3();
+          triangle.getNormal(normal);
+          let angle =
+            (Math.acos(
+              normal.z /
+                Math.sqrt(
+                  normal.z * normal.z +
+                    normal.y * normal.y +
+                    normal.x * normal.x
+                )
+            ) *
+              180) /
+            Math.PI;
+          vol += this.signedVolumeOfTriangle(t1, t2, t3);
+          surface += this.areatriangle3d(t1, t2, t3);
+          if ((angle > 0 && angle < 60) || (angle > 120 && angle < 180))
+            support +=
+              this.areatriangle3d(t1, t2, t3) *
+              ((triangle.a.z + triangle.b.z + triangle.c.z) / 3 - minZ);
+        }
       }
-    }
-  });
-  return [Math.round(vol), Math.round(surface), Math.round(support)];
-}
+    });
+    return [Math.round(vol), Math.round(surface), Math.round(support)];
+  }
 
-let distance3d = function (VecA, VecB) {
-  let a =
-    (VecA.x - VecB.x) ** 2 + (VecA.y - VecB.y) ** 2 + (VecA.z - VecB.z) ** 2;
-  let d = a ** 0.5;
-  return d;
-};
+  distance3d = function (VecA, VecB) {
+    let a =
+      (VecA.x - VecB.x) ** 2 + (VecA.y - VecB.y) ** 2 + (VecA.z - VecB.z) ** 2;
+    let d = a ** 0.5;
+    return d;
+  };
 
-let heron = function (a, b, c) {
-  let s = (a + b + c) / 2;
-  let area = (s * (s - a) * (s - b) * (s - c)) ** 0.5;
-  return area;
-};
+  heron = function (a, b, c) {
+    let s = (a + b + c) / 2;
+    let area = (s * (s - a) * (s - b) * (s - c)) ** 0.5;
+    return area;
+  };
 
-let areatriangle3d = function (Vec1, Vec2, Vec3) {
-  let a = distance3d(Vec1, Vec2);
-  let b = distance3d(Vec2, Vec3);
-  let c = distance3d(Vec3, Vec1);
-  let A = heron(a, b, c);
-  if (isNaN(A)) A = 0;
-  return A;
-};
+  areatriangle3d = function (Vec1, Vec2, Vec3) {
+    let a = this.distance3d(Vec1, Vec2);
+    let b = this.distance3d(Vec2, Vec3);
+    let c = this.distance3d(Vec3, Vec1);
+    let A = this.heron(a, b, c);
+    if (isNaN(A)) A = 0;
+    return A;
+  };
 
-let signedVolumeOfTriangle = function (p1, p2, p3) {
-  let v321 = p3.x * p2.y * p1.z;
-  let v231 = p2.x * p3.y * p1.z;
-  let v312 = p3.x * p1.y * p2.z;
-  let v132 = p1.x * p3.y * p2.z;
-  let v213 = p2.x * p1.y * p3.z;
-  let v123 = p1.x * p2.y * p3.z;
-  return (-v321 + v231 + v312 - v132 - v213 + v123) / 6;
-};
+  signedVolumeOfTriangle = function (p1, p2, p3) {
+    let v321 = p3.x * p2.y * p1.z;
+    let v231 = p2.x * p3.y * p1.z;
+    let v312 = p3.x * p1.y * p2.z;
+    let v132 = p1.x * p3.y * p2.z;
+    let v213 = p2.x * p1.y * p3.z;
+    let v123 = p1.x * p2.y * p3.z;
+    return (-v321 + v231 + v312 - v132 - v213 + v123) / 6;
+  };
 
-function getPrintHeight(object, manufacturing) {
-  let DeltaX = object.boundingBox.max.x - object.boundingBox.min.x;
-  let DeltaY = object.boundingBox.max.y - object.boundingBox.min.y;
-  let DeltaZ = object.boundingBox.max.z - object.boundingBox.min.z;
-  let LongestSide = [DeltaX, DeltaY, DeltaZ].sort(function (a, b) {
-    return b - a;
-  });
-  let PrinterBuildArea = [
-    manufacturing.buildVolume.x * 0.9,
-    manufacturing.buildVolume.y * 0.9,
-    manufacturing.buildVolume.z * 0.9,
-  ].sort(function (a, b) {
-    return b - a;
-  });
-  if (LongestSide[1] < PrinterBuildArea[2]) {
-    if (LongestSide[0] < PrinterBuildArea[1]) {
-      let degrees = 20;
-      let lengthOfPart =
-        LongestSide[0] * Math.sin((degrees * Math.PI) / 180) +
-        LongestSide[2] * Math.cos((degrees * Math.PI) / 180);
-      return lengthOfPart;
+  getPrintHeight(object, manufacturing) {
+    let DeltaX = object.boundingBox.max.x - object.boundingBox.min.x;
+    let DeltaY = object.boundingBox.max.y - object.boundingBox.min.y;
+    let DeltaZ = object.boundingBox.max.z - object.boundingBox.min.z;
+    let LongestSide = [DeltaX, DeltaY, DeltaZ].sort(function (a, b) {
+      return b - a;
+    });
+    let PrinterBuildArea = [
+      manufacturing.buildVolume.x * 0.9,
+      manufacturing.buildVolume.y * 0.9,
+      manufacturing.buildVolume.z * 0.9,
+    ].sort(function (a, b) {
+      return b - a;
+    });
+    if (LongestSide[1] < PrinterBuildArea[2]) {
+      if (LongestSide[0] < PrinterBuildArea[1]) {
+        let degrees = 20;
+        let lengthOfPart =
+          LongestSide[0] * Math.sin((degrees * Math.PI) / 180) +
+          LongestSide[2] * Math.cos((degrees * Math.PI) / 180);
+        return lengthOfPart;
+      } else {
+        let a = Math.sqrt(LongestSide[0] ** 2 - PrinterBuildArea[1] ** 2);
+        let degrees = Math.asin(a / LongestSide[0]);
+        let lengthOfPart =
+          LongestSide[0] * Math.sin(degrees) +
+          LongestSide[2] * Math.cos(degrees);
+        return lengthOfPart;
+      }
     } else {
-      let a = Math.sqrt(LongestSide[0] ** 2 - PrinterBuildArea[1] ** 2);
+      let a = Math.sqrt(LongestSide[0] ** 2 - PrinterBuildArea[2] ** 2);
       let degrees = Math.asin(a / LongestSide[0]);
       let lengthOfPart =
         LongestSide[0] * Math.sin(degrees) + LongestSide[2] * Math.cos(degrees);
       return lengthOfPart;
     }
-  } else {
-    let a = Math.sqrt(LongestSide[0] ** 2 - PrinterBuildArea[2] ** 2);
-    let degrees = Math.asin(a / LongestSide[0]);
-    let lengthOfPart =
-      LongestSide[0] * Math.sin(degrees) + LongestSide[2] * Math.cos(degrees);
-    return lengthOfPart;
   }
 }
