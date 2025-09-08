@@ -1,0 +1,140 @@
+<html lang="en">
+  <header>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!--
+      ImportMap ile modullerin CDN uzerinden import edilmesi
+      three.js, STLLoader ve filePriceCalc modulleri ekleniyor
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.skypack.dev/three@0.149.0/build/three.module",
+          "STLLoader": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/jsm/loaders/STLLoader.js",
+          "filePriceCalc": "https://cdn.jsdelivr.net/gh/Furkan-Karakale/filePriceCalc@refs/heads/main/filePriceCalc.js"
+        }
+      }
+    </script>
+  </header>
+  <body>
+    <div id="drop_zone">
+      <input type="file" id="poule" accept=".stl" onclick="this.value=null;" />
+    </div>
+    <br />
+    <label id="labelFTM">FTM = <span id="ftmValue"></span></label>
+    <br />
+    <label id="labelSLA">SLA = <span id="slaValue"></span></label>
+    <script type="module">
+      import { PRICECALCULATOR } from "filePriceCalc";
+
+      //********
+      // dosya yukleme eventi
+      //********
+      document
+        .getElementById("poule")
+        .addEventListener("change", onFileSelected);
+      function onFileSelected(event) {
+        if (event.target.files.length > 0) {
+          // yeni bir PriceCalculator objesi olusturuluyor
+          let stlFile = new PRICECALCULATOR(0);
+          // obje INIT metodu ile dosya yukleniyor
+          let res = stlFile.INIT(event.currentTarget.files[0]);
+        }
+      }
+
+      //********
+      // INIT fonksiyonu ile dosya yuklendikten sonra yukleme tamamlandiginda tetiklenen event
+      //********
+      document.addEventListener("modelFileLoaded", (e) => {
+        // event icerisindeki e kullanirak PRICECALCULATOR objesine ulasiyoruz
+        let stlFile = e.detail.data;
+        // calcPrice metodu ile FDM uretim yontemi icin fiyat hesaplamasi yapiliyor
+        let cost = stlFile.calcPrice(
+          manufacturer1,
+          filament,
+          expenses,
+          selections
+        );
+        // fiyat span icerisine yazdiriliyor
+        document.getElementById("ftmValue").innerText =
+          cost.data.toFixed(2) + " TL";
+        // calcPrice metodu ile SLA uretim yontemi icin fiyat hesaplamasi yapiliyor
+        cost = stlFile.calcPrice(manufacturer2, resin, expenses);
+        // fiyat span icerisine yazdiriliyor
+        document.getElementById("slaValue").innerText =
+          cost.data.toFixed(2) + " TL";
+      });
+
+      //********
+      // Hesaplamanin gerekliligi icin gerekli olan nesneler
+      //********
+
+      let manufacturer1 = {
+        id: 1,
+        type: "FDM",
+        powerConsumption: 0.125,
+        deteriorationPrice: 6,
+        preparationTime: 0.2,
+        laborMultiplier: 0.5,
+        nozzleThickness: 0.4,
+        minBuildSize: {
+          x: 20,
+          y: 20,
+          z: 5,
+        },
+        buildVolume: {
+          x: 256,
+          y: 256,
+          z: 256,
+        },
+      };
+      let manufacturer2 = {
+        id: 2,
+        type: "SLA",
+        powerConsumption: 0.1,
+        deteriorationPrice: 6,
+        preparationTime: 0.1,
+        laborMultiplier: 1,
+        minBuildSize: {
+          x: 10,
+          y: 10,
+          z: 5,
+        },
+        buildVolume: {
+          x: 218.88,
+          y: 122.88,
+          z: 220,
+        },
+      };
+
+      let expenses = {
+        price: 50,
+        kWPrice: 1.5,
+        tax: 1.2,
+      };
+
+      let filament = {
+        mType: "FDM",
+        type: "TPU",
+        id: 8,
+        color: "BLACK",
+        density: 1.24,
+        price: 550,
+        printSpeed: 6,
+      };
+
+      let resin = {
+        mType: "SLA",
+        type: "RESIN",
+        id: 10,
+        color: "GRAY",
+        density: 1.1,
+        price: 1113.54,
+        printSpeed: 14.75,
+      };
+
+      let selections = { infill: 15, wallCount: 2 };
+    </script>
+  </body>
+</html>
